@@ -232,57 +232,65 @@ public class CliArgumentParserTests
     [Fact]
     public void Parse_QueryWithoutValue_SetsShowHelp()
     {
-        // Arrange — --query sans valeur → ShowHelp=true, Query=null
+        // Arrange — --query sans valeur → ShowHelp=true, Query=null, message d'erreur emis
         var args = new[] { "--query" };
+        using var output = new StringWriter();
 
         // Act
-        var options = CliArgumentParser.Parse(args);
+        var options = CliArgumentParser.Parse(args, output);
 
         // Assert
         options.ShowHelp.Should().BeTrue();
         options.Query.Should().BeNull();
+        output.ToString().Should().Contain("--query requires a SQL statement");
     }
 
     [Fact]
     public void Parse_ConnectionStringWithoutValue_SetsShowHelp()
     {
-        // Arrange — --connection-string sans valeur → ShowHelp=true
+        // Arrange — --connection-string sans valeur → ShowHelp=true, message d'erreur emis
         var args = new[] { "--connection-string" };
+        using var output = new StringWriter();
 
         // Act
-        var options = CliArgumentParser.Parse(args);
+        var options = CliArgumentParser.Parse(args, output);
 
         // Assert
         options.ShowHelp.Should().BeTrue();
         options.ConnectionString.Should().BeNull();
+        output.ToString().Should().Contain("--connection-string requires a value");
     }
 
     [Fact]
     public void Parse_UnknownOption_SetsShowHelp()
     {
-        // Arrange — option inconnue → ShowHelp=true
+        // Arrange — option inconnue → ShowHelp=true, warning emis
         var args = new[] { "--foobar" };
+        using var output = new StringWriter();
 
         // Act
-        var options = CliArgumentParser.Parse(args);
+        var options = CliArgumentParser.Parse(args, output);
 
         // Assert
         options.ShowHelp.Should().BeTrue();
+        output.ToString().Should().Contain("Unknown option");
     }
 
     [Fact]
     public void Parse_ArgumentWithoutDash_IgnoresArgument()
     {
-        // Arrange — argument sans tiret → ignoré, options par défaut
+        // Arrange — argument sans tiret → ignoré, options par défaut, warning emis
         var args = new[] { "foobar" };
+        using var output = new StringWriter();
 
         // Act
-        var options = CliArgumentParser.Parse(args);
+        var options = CliArgumentParser.Parse(args, output);
 
         // Assert
         options.SchemaOnly.Should().BeFalse();
         options.ShowHelp.Should().BeFalse();
         options.Query.Should().BeNull();
+        output.ToString().Should().Contain("Ignoring invalid argument");
     }
 
     [Fact]

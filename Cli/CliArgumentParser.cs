@@ -10,9 +10,11 @@ public static class CliArgumentParser
     /// Parses command-line arguments into a CliOptions object.
     /// </summary>
     /// <param name="args">The command-line arguments array.</param>
+    /// <param name="output">TextWriter for warnings and errors. Defaults to Console.Out.</param>
     /// <returns>A populated CliOptions instance.</returns>
-    public static CliOptions Parse(string[] args)
+    public static CliOptions Parse(string[] args, TextWriter? output = null)
     {
+        var writer = output ?? Console.Out;
         var options = new CliOptions();
 
         if (args == null || args.Length == 0)
@@ -28,7 +30,7 @@ public static class CliArgumentParser
             // Ensure argument starts with - (single or double dash)
             if (!arg.StartsWith("-"))
             {
-                Console.WriteLine($"Warning: Ignoring invalid argument '{arg}'. Arguments must start with '-'.");
+                writer.WriteLine($"Warning: Ignoring invalid argument '{arg}'. Arguments must start with '-'.");
                 continue;
             }
 
@@ -58,7 +60,7 @@ public static class CliArgumentParser
                 case "--connection-string":
                     if (string.IsNullOrWhiteSpace(optionValue))
                     {
-                        Console.WriteLine("Error: --connection-string requires a value. Use --connection-string=<value>");
+                        writer.WriteLine("Error: --connection-string requires a value. Use --connection-string=<value>");
                         options.ShowHelp = true;
                     }
                     else
@@ -71,7 +73,7 @@ public static class CliArgumentParser
                 case "-q":
                     if (string.IsNullOrWhiteSpace(optionValue))
                     {
-                        Console.WriteLine("Error: --query requires a SQL statement. Use --query=\"SELECT ...\"");
+                        writer.WriteLine("Error: --query requires a SQL statement. Use --query=\"SELECT ...\"");
                         options.ShowHelp = true;
                     }
                     else
@@ -92,7 +94,7 @@ public static class CliArgumentParser
                     break;
 
                 default:
-                    Console.WriteLine($"Warning: Unknown option '{optionName}'");
+                    writer.WriteLine($"Warning: Unknown option '{optionName}'");
                     options.ShowHelp = true;
                     break;
             }

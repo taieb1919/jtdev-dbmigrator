@@ -129,9 +129,7 @@ public class MigrationEngine : IMigrationEngine
         }
 
         // Get all .sql files sorted alphabetically
-        var sqlFiles = Directory.GetFiles(directoryPath, "*.sql")
-            .OrderBy(f => Path.GetFileName(f))
-            .ToList();
+        var sqlFiles = ScriptFile.DiscoverScripts(directoryPath);
 
         if (sqlFiles.Count == 0)
         {

@@ -63,4 +63,20 @@ public class ScriptFile
     {
         Checksum = CalculateChecksum(Content);
     }
+
+    /// <summary>
+    /// Discovers all .sql files in a directory, sorted alphabetically by filename.
+    /// Returns an empty list if the directory does not exist or contains no .sql files.
+    /// </summary>
+    /// <param name="directoryPath">Absolute path to the directory to scan.</param>
+    /// <returns>Sorted list of full file paths for all .sql files found.</returns>
+    public static List<string> DiscoverScripts(string directoryPath)
+    {
+        if (!Directory.Exists(directoryPath))
+            return new List<string>();
+
+        return Directory.GetFiles(directoryPath, "*.sql")
+            .OrderBy(f => Path.GetFileName(f))
+            .ToList();
+    }
 }

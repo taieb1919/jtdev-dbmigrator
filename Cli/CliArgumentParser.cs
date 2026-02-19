@@ -25,10 +25,10 @@ public static class CliArgumentParser
             if (string.IsNullOrWhiteSpace(arg))
                 continue;
 
-            // Ensure argument starts with --
-            if (!arg.StartsWith("--"))
+            // Ensure argument starts with - (single or double dash)
+            if (!arg.StartsWith("-"))
             {
-                Console.WriteLine($"Warning: Ignoring invalid argument '{arg}'. Arguments must start with '--'.");
+                Console.WriteLine($"Warning: Ignoring invalid argument '{arg}'. Arguments must start with '-'.");
                 continue;
             }
 
@@ -108,7 +108,7 @@ public static class CliArgumentParser
     {
         Console.WriteLine();
         Console.WriteLine("╔═══════════════════════════════════════════════════════════════════════════╗");
-        Console.WriteLine("║               JTDev Database Migration Engine                             ║");
+        Console.WriteLine("║                      JTDev Database Migration Engine                      ║");
         Console.WriteLine("╚═══════════════════════════════════════════════════════════════════════════╝");
         Console.WriteLine();
         Console.WriteLine("USAGE:");
@@ -163,7 +163,7 @@ public static class CliArgumentParser
         Console.WriteLine("  JTDev.DbMigrator --query=\"SELECT id, email, role FROM users LIMIT 5\"");
         Console.WriteLine();
         Console.WriteLine("  # Query with custom connection");
-        Console.WriteLine("  JTDev.DbMigrator --query=\"SELECT COUNT(*) FROM betting_tips\" --connection-string=\"...\"");
+        Console.WriteLine("  JTDev.DbMigrator --query=\"SELECT COUNT(*) FROM schema_migrations\" --connection-string=\"...\"");
         Console.WriteLine();
         Console.WriteLine("NOTES:");
         Console.WriteLine("  - Options --schema-only, --migrations-only, and --seeds-only are mutually exclusive");

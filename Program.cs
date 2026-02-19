@@ -50,21 +50,20 @@ public class Program
             // Get console logger for colored output (singleton, no scope needed)
             consoleLogger = host.Services.GetRequiredService<IConsoleLogger>();
 
-            // Create a scope for scoped services
-            using var scope = host.Services.CreateScope();
-            var scopedServices = scope.ServiceProvider;
-
-            // Load and validate migration configuration
-            var configManager = scopedServices.GetRequiredService<Configuration.ConfigurationManager>();
-
+            // Load and validate migration configuration (singleton, loaded once)
             consoleLogger.Info("Loading configuration...");
-            var migrationOptions = configManager.LoadMigrationOptions(requireScriptsPath: !cliOptions.IsQueryMode);
+            var migrationOptions = host.Services.GetRequiredService<MigrationOptions>();
             consoleLogger.Success("Configuration loaded successfully");
             consoleLogger.Info("");
 
             // Test database connection
+            var configManager = host.Services.GetRequiredService<Configuration.ConfigurationManager>();
             await configManager.TestConnectionAsync(migrationOptions.ConnectionString!);
             consoleLogger.Info("");
+
+            // Create a scope for scoped services
+            using var scope = host.Services.CreateScope();
+            var scopedServices = scope.ServiceProvider;
 
             // Query mode: execute query and display results
             if (cliOptions.IsQueryMode)
@@ -146,28 +145,30 @@ public class Program
                 // Register console logger (singleton for thread-safe colored output)
                 services.AddSingleton<IConsoleLogger, ConsoleLogger>();
 
-                // Register migration repository (scoped) - connection string resolved via ConfigurationManager
+                // Register configuration manager (singleton — dependencies are all singleton)
+                services.AddSingleton<Configuration.ConfigurationManager>();
+
+                // Register migration options (singleton — loaded once with correct requireScriptsPath)
+                services.AddSingleton<MigrationOptions>(sp =>
+                {
+                    var configManager = sp.GetRequiredService<Configuration.ConfigurationManager>();
+                    return configManager.LoadMigrationOptions(requireScriptsPath: !cliOptions.IsQueryMode);
+                });
+
+                // Register migration repository (scoped)
                 services.AddScoped<IMigrationRepository>(sp =>
                 {
                     var logger = sp.GetRequiredService<ILogger<MigrationRepository>>();
-                    var configManager = sp.GetRequiredService<Configuration.ConfigurationManager>();
-                    var options = configManager.LoadMigrationOptions();
+                    var options = sp.GetRequiredService<MigrationOptions>();
                     return new MigrationRepository(options.ConnectionString!, logger);
                 });
-
-                // Register configuration manager (scoped)
-                services.AddScoped<Configuration.ConfigurationManager>();
 
                 // Register migration engine (scoped)
                 services.AddScoped<IMigrationEngine>(sp =>
                 {
                     var logger = sp.GetRequiredService<IConsoleLogger>();
                     var repository = sp.GetRequiredService<IMigrationRepository>();
-
-                    // Load options via ConfigurationManager to ensure proper priority resolution
-                    var configManager = sp.GetRequiredService<Configuration.ConfigurationManager>();
-                    var options = configManager.LoadMigrationOptions();
-
+                    var options = sp.GetRequiredService<MigrationOptions>();
                     return new MigrationEngine(logger, repository, options);
                 });
             })

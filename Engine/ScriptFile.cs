@@ -31,7 +31,7 @@ public class ScriptFile
     public ScriptType ScriptType { get; set; }
 
     /// <summary>
-    /// SQL script content. Lazy-loaded via IScriptFileReader.ReadContentAsync().
+    /// SQL script content.
     /// </summary>
     public string Content { get; set; } = string.Empty;
 

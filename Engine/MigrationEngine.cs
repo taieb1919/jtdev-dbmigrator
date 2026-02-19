@@ -156,6 +156,16 @@ public class MigrationEngine : IMigrationEngine
 
             if (isApplied)
             {
+                // Verify checksum to detect modified scripts (warn but still skip)
+                var currentContent = await File.ReadAllTextAsync(scriptPath, cancellationToken);
+                var currentChecksum = CalculateMd5Checksum(currentContent);
+                var checksumMatch = await _repository.VerifyChecksumAsync(version, currentChecksum, cancellationToken);
+
+                if (!checksumMatch)
+                {
+                    _logger.Warning($"[WARN] {scriptName} - Already applied but script content has changed (checksum mismatch)!");
+                }
+
                 _logger.Skip($"[SKIP] {scriptName} - Already applied");
                 result.SkippedScripts++;
                 continue;

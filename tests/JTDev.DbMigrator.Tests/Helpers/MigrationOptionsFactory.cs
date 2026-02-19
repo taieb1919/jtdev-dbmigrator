@@ -23,13 +23,4 @@ public static class MigrationOptionsFactory
             TimeoutSeconds = 5
         };
     }
-
-    /// <summary>
-    /// Crée un MigrationOptions avec une connection string invalide pour provoquer un échec SQL.
-    /// L'ouverture de NpgsqlConnection échouera, permettant de tester les scénarios d'erreur.
-    /// </summary>
-    public static MigrationOptions CreateWithInvalidConnection(TestScriptHelper helper)
-    {
-        return CreateForTests(helper, "Host=invalid-host-that-does-not-exist;Database=nope;Username=x;Password=x;");
-    }
 }

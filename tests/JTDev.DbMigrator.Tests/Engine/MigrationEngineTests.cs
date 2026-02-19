@@ -1,5 +1,6 @@
 using FluentAssertions;
 using NSubstitute;
+using NSubstitute.ReceivedExtensions;
 using Xunit;
 using JTDev.DbMigrator.Cli;
 using JTDev.DbMigrator.Data;
@@ -18,6 +19,8 @@ public class MigrationEngineTests
     // ─────────────────────────────────────────────────────────────────────────
     // Helpers privés
     // ─────────────────────────────────────────────────────────────────────────
+
+    private const string InvalidConnectionString = "Host=invalid;Database=nope;Username=x;Password=x;";
 
     private static (MigrationEngine engine, IConsoleLogger logger, IMigrationRepository repository) CreateEngine(
         TestScriptHelper helper,
@@ -40,6 +43,11 @@ public class MigrationEngineTests
 
     // ─────────────────────────────────────────────────────────────────────────
     // Task 3 — Exécution complète (AC #2)
+    // LIMITATION: ExecuteScriptAsync crée directement une NpgsqlConnection,
+    // donc le happy path (execute → record) n'est pas testable en unitaire.
+    // Les tests ci-dessous mockent IsApplied=true (skip) pour vérifier le
+    // filtrage et l'ordre sans nécessiter de DB. Le chemin d'exécution SQL
+    // réel est couvert indirectement par les tests d'erreur (Task 5).
     // ─────────────────────────────────────────────────────────────────────────
 
     [Fact]
@@ -70,6 +78,15 @@ public class MigrationEngineTests
         // IsAppliedAsync appelé pour les scripts schema, migrations et seeds
         // 2 schema + 1 migration + 1 seed = 4 scripts au total
         await repository.Received(4).IsAppliedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+
+        // Vérifier l'ORDRE d'exécution : schema → migrations → seeds (AC #2)
+        Received.InOrder(() =>
+        {
+            repository.IsAppliedAsync("001_create_users", Arg.Any<CancellationToken>());
+            repository.IsAppliedAsync("002_create_tables", Arg.Any<CancellationToken>());
+            repository.IsAppliedAsync("001_add_column", Arg.Any<CancellationToken>());
+            repository.IsAppliedAsync("001_seed_data", Arg.Any<CancellationToken>());
+        });
 
         result.TotalScripts.Should().Be(4);
         result.SkippedScripts.Should().Be(4);
@@ -243,17 +260,17 @@ public class MigrationEngineTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_NewScript_ExecutesAndRecords()
+    public async Task ExecuteAsync_NewScript_ConnectionFails_DoesNotRecord()
     {
-        // Arrange — AC #3/#4 : script non appliqué → exécuté + RecordMigrationAsync appelé
-        // On utilise IsApplied=false et connexion invalide → exception → fail
-        // Pour tester "execute + record", on doit simuler sans DB réelle.
-        // Stratégie: On vérifie que RecordMigrationAsync N'EST PAS appelé quand l'exécution échoue
-        // et qu'IsApplied=false → le code TENTE l'exécution SQL (qui échoue avec connexion invalide)
+        // Arrange — Script non appliqué + connexion invalide → exécution SQL échoue
+        // On vérifie que RecordMigrationAsync N'EST PAS appelé quand l'exécution échoue
+        // NOTE: Le happy path (execute → record) n'est pas testable en unitaire car
+        // ExecuteScriptAsync crée directement une NpgsqlConnection (non mockable).
+        // Ce cas serait couvert par des tests d'intégration avec une DB réelle.
         using var helper = new TestScriptHelper();
         helper.AddSchemaScript("001_create_users.sql", "CREATE TABLE users (id INT);");
 
-        var (engine, _, repository) = CreateEngine(helper, connectionString: "Host=invalid;Database=nope;Username=x;Password=x;");
+        var (engine, _, repository) = CreateEngine(helper, connectionString: InvalidConnectionString);
 
         // Script non appliqué
         repository.IsAppliedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(false);
@@ -280,7 +297,7 @@ public class MigrationEngineTests
         using var helper = new TestScriptHelper();
         helper.AddSchemaScript("001_create_users.sql", "CREATE TABLE users (id INT);");
 
-        var (engine, logger, repository) = CreateEngine(helper, connectionString: "Host=invalid;Database=nope;Username=x;Password=x;");
+        var (engine, logger, repository) = CreateEngine(helper, connectionString: InvalidConnectionString);
 
         repository.IsAppliedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(false);
 
@@ -299,7 +316,7 @@ public class MigrationEngineTests
         using var helper = new TestScriptHelper();
         helper.AddSchemaScript("001_create_users.sql", "SELECT 1;");
 
-        var (engine, _, repository) = CreateEngine(helper, connectionString: "Host=invalid;Database=nope;Username=x;Password=x;");
+        var (engine, _, repository) = CreateEngine(helper, connectionString: InvalidConnectionString);
 
         repository.IsAppliedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(false);
 
@@ -323,7 +340,7 @@ public class MigrationEngineTests
         helper.AddSchemaScript("002_create_table.sql", "CREATE TABLE b (id INT);");
         helper.AddSchemaScript("003_create_table.sql", "CREATE TABLE c (id INT);");
 
-        var (engine, _, repository) = CreateEngine(helper, connectionString: "Host=invalid;Database=nope;Username=x;Password=x;");
+        var (engine, _, repository) = CreateEngine(helper, connectionString: InvalidConnectionString);
 
         // Tous les scripts sont "nouveaux" (pas encore appliqués)
         repository.IsAppliedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(false);
@@ -405,10 +422,10 @@ public class MigrationEngineTests
         // Act
         var result = await engine.ExecuteAsync(DefaultOptions(), cts.Token);
 
-        // Assert — l'exécution a été stoppée (erreur capturée par le try/catch global)
-        // La OperationCanceledException est capturée → result.FailedScripts >= 1 (via le catch global)
-        // OU result reste vide si l'exception est remontée différemment
-        // Dans tous les cas, aucun script ne doit avoir été exécuté
+        // Assert — l'OperationCanceledException est capturée par le catch global de ExecuteAsync
+        // qui incrémente FailedScripts et ajoute l'erreur
         result.ExecutedScripts.Should().Be(0);
+        result.FailedScripts.Should().BeGreaterThan(0);
+        result.IsSuccess.Should().BeFalse();
     }
 }

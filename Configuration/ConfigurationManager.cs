@@ -25,9 +25,10 @@ public class ConfigurationManager
     /// Loads and validates migration options with priority resolution.
     /// Priority order: CLI arguments > Environment variables > appsettings.json
     /// </summary>
+    /// <param name="requireScriptsPath">When false, skips ScriptsPath validation (e.g. in query-only mode).</param>
     /// <returns>Validated MigrationOptions instance</returns>
     /// <exception cref="InvalidOperationException">Thrown when configuration is invalid or connection test fails</exception>
-    public MigrationOptions LoadMigrationOptions()
+    public MigrationOptions LoadMigrationOptions(bool requireScriptsPath = true)
     {
         _logger.LogInformation("Loading migration configuration with priority: CLI > ENV > appsettings");
 
@@ -63,7 +64,7 @@ public class ConfigurationManager
         // Validate configuration
         try
         {
-            options.Validate();
+            options.Validate(requireScriptsPath);
             _logger.LogInformation("Migration configuration validated successfully");
         }
         catch (InvalidOperationException ex)
@@ -166,7 +167,8 @@ public class ConfigurationManager
 
         _logger.LogInformation("Resolved migration configuration:");
         _logger.LogInformation("  ConnectionString: {ConnectionString}", maskedConnectionString);
-        _logger.LogInformation("  ScriptsPath: {ScriptsPath}", Path.GetFullPath(options.ScriptsPath));
+        _logger.LogInformation("  ScriptsPath: {ScriptsPath}",
+            string.IsNullOrWhiteSpace(options.ScriptsPath) ? "[not set]" : Path.GetFullPath(options.ScriptsPath));
         _logger.LogInformation("  SchemaPath: {SchemaPath}", options.SchemaPath);
         _logger.LogInformation("  SeedsPath: {SeedsPath}", options.SeedsPath);
         _logger.LogInformation("  MigrationsPath: {MigrationsPath}", options.MigrationsPath);

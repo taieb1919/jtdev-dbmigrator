@@ -60,8 +60,9 @@ public class MigrationOptions
     /// <summary>
     /// Validates that all required configuration is present and valid.
     /// </summary>
+    /// <param name="requireScriptsPath">When false, skips ScriptsPath validation (e.g. in query-only mode).</param>
     /// <exception cref="InvalidOperationException">Thrown when required configuration is missing or invalid.</exception>
-    public void Validate()
+    public void Validate(bool requireScriptsPath = true)
     {
         if (string.IsNullOrWhiteSpace(ConnectionString))
         {
@@ -72,7 +73,7 @@ public class MigrationOptions
                 "  - appsettings.json: ConnectionStrings:DefaultConnection");
         }
 
-        if (string.IsNullOrWhiteSpace(ScriptsPath))
+        if (requireScriptsPath && string.IsNullOrWhiteSpace(ScriptsPath))
         {
             throw new InvalidOperationException("Migration:ScriptsPath is required in configuration");
         }

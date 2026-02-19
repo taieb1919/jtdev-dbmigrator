@@ -58,7 +58,7 @@ public class Program
             var configManager = scopedServices.GetRequiredService<Configuration.ConfigurationManager>();
 
             consoleLogger.Info("Loading configuration...");
-            var migrationOptions = configManager.LoadMigrationOptions();
+            var migrationOptions = configManager.LoadMigrationOptions(requireScriptsPath: !cliOptions.IsQueryMode);
             consoleLogger.Success("Configuration loaded successfully");
             consoleLogger.Info("");
 

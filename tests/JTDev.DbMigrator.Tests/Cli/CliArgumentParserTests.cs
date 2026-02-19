@@ -216,6 +216,20 @@ public class CliArgumentParserTests
     }
 
     [Fact]
+    public void Parse_ConnectionStringWithMultipleEquals_PreservesFullValue()
+    {
+        // Arrange — connection string reelle avec multiples '=' (Split('=', 2) doit preserver)
+        var connStr = "Host=localhost;Port=5432;Database=test;Username=admin";
+        var args = new[] { $"--connection-string={connStr}" };
+
+        // Act
+        var options = CliArgumentParser.Parse(args);
+
+        // Assert
+        options.ConnectionString.Should().Be(connStr);
+    }
+
+    [Fact]
     public void Parse_QueryWithoutValue_SetsShowHelp()
     {
         // Arrange — --query sans valeur → ShowHelp=true, Query=null

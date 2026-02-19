@@ -25,7 +25,7 @@ public class CliOptionsTests
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("exclusive");
+        result.ErrorMessage.Should().Be("Cannot specify multiple exclusive options: --schema-only, --migrations-only, --seeds-only");
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public class CliOptionsTests
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("exclusive");
+        result.ErrorMessage.Should().Be("Cannot specify multiple exclusive options: --schema-only, --migrations-only, --seeds-only");
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public class CliOptionsTests
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("exclusive");
+        result.ErrorMessage.Should().Be("Cannot specify multiple exclusive options: --schema-only, --migrations-only, --seeds-only");
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public class CliOptionsTests
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("exclusive");
+        result.ErrorMessage.Should().Be("Cannot specify multiple exclusive options: --schema-only, --migrations-only, --seeds-only");
     }
 
     [Fact]
@@ -81,7 +81,7 @@ public class CliOptionsTests
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("query");
+        result.ErrorMessage.Should().Be("Cannot combine --query with migration options (--schema-only, --migrations-only, --seeds-only, --skip-seeds)");
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public class CliOptionsTests
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("query");
+        result.ErrorMessage.Should().Be("Cannot combine --query with migration options (--schema-only, --migrations-only, --seeds-only, --skip-seeds)");
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public class CliOptionsTests
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("query");
+        result.ErrorMessage.Should().Be("Cannot combine --query with migration options (--schema-only, --migrations-only, --seeds-only, --skip-seeds)");
     }
 
     [Fact]
@@ -123,7 +123,7 @@ public class CliOptionsTests
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("query");
+        result.ErrorMessage.Should().Be("Cannot combine --query with migration options (--schema-only, --migrations-only, --seeds-only, --skip-seeds)");
     }
 
     [Fact]
@@ -137,8 +137,7 @@ public class CliOptionsTests
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("skip-seeds");
-        result.ErrorMessage.Should().Contain("seeds-only");
+        result.ErrorMessage.Should().Be("Cannot specify both --skip-seeds and --seeds-only");
     }
 
     [Fact]
@@ -152,7 +151,7 @@ public class CliOptionsTests
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("redundant");
+        result.ErrorMessage.Should().Be("--skip-seeds is redundant with --schema-only or --migrations-only");
     }
 
     [Fact]
@@ -166,7 +165,7 @@ public class CliOptionsTests
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("redundant");
+        result.ErrorMessage.Should().Be("--skip-seeds is redundant with --schema-only or --migrations-only");
     }
 
     [Fact]
@@ -202,6 +201,34 @@ public class CliOptionsTests
     {
         // Arrange — SchemaOnly seul → valide
         var options = new CliOptions { SchemaOnly = true };
+
+        // Act
+        var result = options.Validate();
+
+        // Assert
+        result.IsValid.Should().BeTrue();
+        result.ErrorMessage.Should().BeNull();
+    }
+
+    [Fact]
+    public void Validate_MigrationsOnlyAlone_ReturnsTrue()
+    {
+        // Arrange — MigrationsOnly seul → valide
+        var options = new CliOptions { MigrationsOnly = true };
+
+        // Act
+        var result = options.Validate();
+
+        // Assert
+        result.IsValid.Should().BeTrue();
+        result.ErrorMessage.Should().BeNull();
+    }
+
+    [Fact]
+    public void Validate_SeedsOnlyAlone_ReturnsTrue()
+    {
+        // Arrange — SeedsOnly seul → valide
+        var options = new CliOptions { SeedsOnly = true };
 
         // Act
         var result = options.Validate();
@@ -270,6 +297,16 @@ public class CliOptionsTests
     {
         // Arrange — SchemaOnly → ShouldExecuteMigrations=false
         var options = new CliOptions { SchemaOnly = true };
+
+        // Act & Assert
+        options.ShouldExecuteMigrations.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ShouldExecuteMigrations_SeedsOnly_ReturnsFalse()
+    {
+        // Arrange — SeedsOnly → ShouldExecuteMigrations=false
+        var options = new CliOptions { SeedsOnly = true };
 
         // Act & Assert
         options.ShouldExecuteMigrations.Should().BeFalse();
